@@ -24,10 +24,6 @@ jobs:
           node-version: 24
           cache: npm
 
-      # Step 3: Install dependencies
-      - name: Install Dependencies
-        run: npm ci
-
       
 
       # Step 5: Cache dependencies

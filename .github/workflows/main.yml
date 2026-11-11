@@ -10,23 +10,47 @@ on:
 
 jobs:
   build:
+    name: Build and CodeQL Analysis
     runs-on: ubuntu-latest
 
+    strategy:
+      fail-fast: false
+      matrix:
+        language: [javascript-typescript]
+
     steps:
+      # Step 1: Checkout source code
       - name: Checkout Code
         uses: actions/checkout@v4
 
+      # Step 2: Setup Node.js
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: 24
           cache: npm
 
+      # Step 3: Initialize CodeQL
+      - name: Initialize CodeQL
+        uses: github/codeql-action/init@v3
+        with:
+          languages: ${{ matrix.language }}
+          # queries: security-extended
+
+      # Step 4: Install dependencies
       - name: Install Dependencies
         run: npm ci
 
+      # Step 5: Build application
       - name: Build Application
         run: npm run build
+
+      # Step 6: Perform CodeQL Analysis
+      - name: Perform CodeQL Analysis
+        uses: github/codeql-action/analyze@v3
+        with:
+          category: "/language:${{ matrix.language }}"
+
 
 
 

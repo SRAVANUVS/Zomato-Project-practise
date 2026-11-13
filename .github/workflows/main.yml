@@ -1,3 +1,4 @@
+
 name: Secure DevSecOps Pipeline
 
 on:
@@ -7,53 +8,52 @@ on:
       - main
   workflow_dispatch:
 
+permissions:
+  contents: read
+
 jobs:
   build:
-    name: Build and CodeQL Analysis
     runs-on: ubuntu-latest
-
-    # Required permissions for CodeQL
-    permissions:
-      contents: read
-      security-events: write
-      actions: read
-
-    strategy:
-      fail-fast: false
-      matrix:
-        language: [javascript-typescript]
-
     steps:
-      # Step 1: Checkout source code
       - name: Checkout Code
         uses: actions/checkout@v4
 
-      # Step 2: Setup Node.js
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
+      - name: Cache Dependencies
+        uses: actions/cache@v4
         with:
-          node-version: 24
-          cache: npm
+          path: ~/.npm
+          key: ${{ runner.os }}-node-${{ hashFiles('**/package-lock.json') }}
 
-      # Step 3: Initialize CodeQL
-      - name: Initialize CodeQL
-        uses: github/codeql-action/init@v3
-        with:
-          languages: ${{ matrix.language }}
-
-      # Step 4: Install dependencies
       - name: Install Dependencies
         run: npm ci
 
-      # Step 5: Build application
-      - name: Build Application
+      - name: Build
         run: npm run build
 
-      # Step 6: Perform CodeQL Analysis
-      - name: Perform CodeQL Analysis
-        uses: github/codeql-action/analyze@v3
-        with:
-          category: "/language:${{ matrix.language }}"
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Install Dependencies
+        run: npm ci
+
+      - name: Test
+        run: npm test
+
+  security:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Install Dependencies
+        run: npm ci
+
+      - name: Security Scan
+        run: npm audit --audit-level=high
+
 
 
 

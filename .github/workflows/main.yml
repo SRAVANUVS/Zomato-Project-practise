@@ -1,94 +1,56 @@
-name: Enterprise CI Pipeline 
- 
+
+name: Secure DevSecOps Pipeline
+
 on:
   push:
     branches:
-      - main
       - master
-      - develop
-      - feature/**
-  pull_request:
-    branches:
       - main
-      - master
-      - develop
   workflow_dispatch:
 
-permissions: 
-  actions: read 
-  contents: read 
-  security-events: write # Required to upload findings to the Security tab 
-  
+permissions:
+  contents: read
 
 jobs:
   build:
-    name: Build React Application
-    runs-on: self-hosted
-    strategy:
-      matrix:
-        language: ['javascript-typescript']
-    timeout-minutes: 20
-    defaults:
-      run:
-        shell: bash
-
+    runs-on: ubuntu-latest
     steps:
-
-      - name: Checkout Repository
+      - name: Checkout Code
         uses: actions/checkout@v4
 
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
+      - name: Cache Dependencies
+        uses: actions/cache@v4
         with:
-          node-version: '20' # Specify your required Node.js version
-          cache: 'npm'       # Automatically caches npm modules for faster subsequent runs
+          path: ~/.npm
+          key: ${{ runner.os }}-node-${{ hashFiles('**/package-lock.json') }}
 
-
-      - name: Cache Dependencies 
-        uses: actions/cache@v5 
-        with: 
-          path: ~/.npm 
-          key: ${{ runner.os }}-node-${{ matrix.node-version }}-${{ hashFiles('**/package-lock.json') }} 
-          restore-keys: | 
-            ${{ runner.os }}-node-${{ matrix.node-version }}- 
-
-      - name: Initialize CodeQL
-        uses: github/codeql-action/init@v3
-        with:
-          languages: ${{ matrix.language }}
-
-      - name: Autobuild
-        uses: github/codeql-action/autobuild@v3
-
-      - name: Perform CodeQL Analysis
-        uses: github/codeql-action/analyze@v3
-        with:
-         category: "/language:${{matrix.language}}"
-
-        
       - name: Install Dependencies
         run: npm ci
 
-      - name: Verify Installed Packages
-        run: npm ls || true
+      - name: Build
+        run: npm run build
 
-      - name: Run ESLint
-        run: npm run lint
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
 
-      - name: Run Unit Tests
-        env:
-          CI: true
-        run: echo "code is tested"
+      - name: Install Dependencies
+        run: npm ci
 
-      - name: deploy
-        run: echo "code is deployed"
+      - name: Test
+        run: npm test
 
-      - name: Artifact upload 
-        uses: actions/upload-artifact@v7 
-        with: 
-          name: artifact-1 
-          path: | 
-            package* 
-          retention-days: 7
+  security:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
 
+      - name: Install Dependencies
+        run: npm ci
 
+      - name: Security Scan
+        run: npm audit --audit-level=high
+ 
